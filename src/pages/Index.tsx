@@ -10,13 +10,13 @@ const Index = () => {
   const [currentState, setCurrentState] = useState<AppState>('login');
   const [userInfo, setUserInfo] = useState({
     phoneNumber: '',
-    language: 'hindi',
+    language: 'hindi' as 'hindi' | 'english' | 'marathi' | 'telugu' | 'tamil' | 'punjabi',
     income: '10000-15000'
   });
   const [expenses, setExpenses] = useState<any[]>([]);
 
   const handleLogin = (phoneNumber: string, language: string, income: string) => {
-    setUserInfo({ phoneNumber, language, income });
+    setUserInfo({ phoneNumber, language: language as 'hindi' | 'english' | 'marathi' | 'telugu' | 'tamil' | 'punjabi', income });
     setCurrentState('dashboard');
   };
 

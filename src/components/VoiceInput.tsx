@@ -133,26 +133,86 @@ const VoiceInput = ({ userLanguage, onBack, onExpenseAdded }: VoiceInputProps) =
     setIsRecording(false);
   };
 
+  const extractExpenseFromText = (text: string) => {
+    // Enhanced regex patterns for amount extraction with better NLP
+    const patterns = [
+      // Direct amount patterns
+      /(\d+)\s*(?:rupaye|rupees|रुपये|रुपए|rupaiya)/i,
+      /(?:rupaye|rupees|रुपये|रुपए|rupaiya)\s*(\d+)/i,
+      /(\d+)\s*(?:rs|₹|taka|टका)/i,
+      /(?:rs|₹|taka|टका)\s*(\d+)/i,
+      
+      // Expense context patterns
+      /(?:kharch|खर्च|spend|spent|expenditure|expense|cost|price|diya|दिया|किया|kiya)\s*.*?(\d+)/i,
+      /(\d+)\s*(?:mein|में|for|ke liye|के लिए|ka|का|ki|की)/i,
+      /(?:paisa|पैसा|money|amount|राशि|रकम)\s*.*?(\d+)/i,
+      
+      // Specific expense categories with amounts
+      /(?:sabzi|सब्जी|vegetables|grocery|groceries|किराना|kirana)\s*.*?(\d+)/i,
+      /(?:petrol|diesel|fuel|पेट्रोल|डीजल|ईंधन)\s*.*?(\d+)/i,
+      /(?:travel|यात्रा|ticket|टिकट|bus|बस|auto|ऑटो)\s*.*?(\d+)/i,
+      /(?:food|खाना|meal|भोजन|lunch|dinner|breakfast)\s*.*?(\d+)/i,
+      /(?:medicine|दवा|medical|doctor|डॉक्टर|hospital|अस्पताल)\s*.*?(\d+)/i,
+      
+      // Action-based patterns
+      /(?:bought|buy|kharida|खरीदा|liya|लिया|purchase)\s*.*?(\d+)/i,
+      /(?:paid|pay|payment|दिया|भुगतान|paid)\s*.*?(\d+)/i,
+      
+      // Fallback numeric pattern
+      /(\d+)/
+    ];
+
+    let extractedAmount = null;
+    let confidence = 0;
+
+    for (let i = 0; i < patterns.length; i++) {
+      const pattern = patterns[i];
+      const match = text.match(pattern);
+      if (match && match[1]) {
+        const amount = parseInt(match[1]);
+        // Higher confidence for earlier, more specific patterns
+        const currentConfidence = (patterns.length - i) / patterns.length;
+        
+        if (currentConfidence > confidence && amount > 0 && amount < 100000) {
+          extractedAmount = amount;
+          confidence = currentConfidence;
+        }
+      }
+    }
+    
+    return extractedAmount;
+  };
+
+  const categorizeExpense = (text: string) => {
+    const lowerText = text.toLowerCase();
+    
+    const categories = {
+      groceries: ['sabzi', 'सब्जी', 'grocery', 'groceries', 'किराना', 'kirana', 'vegetables', 'fruits', 'milk', 'दूध', 'ration', 'राशन'],
+      transport: ['petrol', 'diesel', 'fuel', 'पेट्रोल', 'डीजल', 'bus', 'बस', 'auto', 'ऑटो', 'taxi', 'टैक्सी', 'travel', 'यात्रा', 'ticket', 'टिकट'],
+      food: ['khana', 'खाना', 'food', 'meal', 'भोजन', 'lunch', 'dinner', 'breakfast', 'restaurant', 'रेस्तराँ', 'tea', 'चाय', 'coffee', 'कॉफी'],
+      medical: ['medicine', 'दवा', 'medical', 'doctor', 'डॉक्टर', 'hospital', 'अस्पताल'],
+      bills: ['mobile', 'मोबाइल', 'phone', 'फोन', 'recharge', 'रिचार्ज', 'data', 'डेटा', 'internet', 'इंटरनेट', 'rent', 'किराया', 'house', 'घर', 'room', 'कमरा', 'electricity', 'बिजली', 'water', 'पानी'],
+      other: ['clothes', 'कपड़े', 'gift', 'उपहार', 'other', 'अन्य', 'miscellaneous']
+    };
+
+    for (const [category, keywords] of Object.entries(categories)) {
+      if (keywords.some(keyword => lowerText.includes(keyword))) {
+        return category;
+      }
+    }
+    
+    return 'other';
+  };
+
   const processTranscription = (text: string) => {
     setIsProcessing(true);
     
-    // Simple NLP parsing - in production, this would use a proper NLP service
+    // Enhanced NLP parsing
     setTimeout(() => {
-      const amountMatch = text.match(/(\d+)\s*(?:रुपये|rupees?|rs)/i);
-      const extractedAmount = amountMatch ? amountMatch[1] : "";
+      const extractedAmount = extractExpenseFromText(text);
+      const extractedCategory = categorizeExpense(text);
       
-      let extractedCategory = "other";
-      if (text.toLowerCase().includes("सब्जी") || text.toLowerCase().includes("vegetables") || text.toLowerCase().includes("groceries")) {
-        extractedCategory = "groceries";
-      } else if (text.toLowerCase().includes("ऑटो") || text.toLowerCase().includes("बस") || text.toLowerCase().includes("transport") || text.toLowerCase().includes("taxi")) {
-        extractedCategory = "transport";
-      } else if (text.toLowerCase().includes("खाना") || text.toLowerCase().includes("food") || text.toLowerCase().includes("restaurant")) {
-        extractedCategory = "food";
-      } else if (text.toLowerCase().includes("दवाई") || text.toLowerCase().includes("medicine") || text.toLowerCase().includes("medical")) {
-        extractedCategory = "medical";
-      }
-
-      setAmount(extractedAmount);
+      setAmount(extractedAmount ? extractedAmount.toString() : "");
       setCategory(extractedCategory);
       setDescription(text);
       setIsProcessing(false);
