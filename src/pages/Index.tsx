@@ -1,14 +1,74 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useState } from "react";
+import LoginPage from "@/components/LoginPage";
+import Dashboard from "@/components/Dashboard";
+import VoiceInput from "@/components/VoiceInput";
+import ChatBot from "@/components/ChatBot";
+
+type AppState = 'login' | 'dashboard' | 'voice' | 'chat';
 
 const Index = () => {
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
-      </div>
-    </div>
-  );
+  const [currentState, setCurrentState] = useState<AppState>('login');
+  const [userInfo, setUserInfo] = useState({
+    phoneNumber: '',
+    language: 'hindi',
+    income: '10000-15000'
+  });
+  const [expenses, setExpenses] = useState<any[]>([]);
+
+  const handleLogin = (phoneNumber: string, language: string, income: string) => {
+    setUserInfo({ phoneNumber, language, income });
+    setCurrentState('dashboard');
+  };
+
+  const handleVoiceInput = () => {
+    setCurrentState('voice');
+  };
+
+  const handleChatBot = () => {
+    setCurrentState('chat');
+  };
+
+  const handleExpenseAdded = (expense: any) => {
+    setExpenses(prev => [...prev, expense]);
+    setCurrentState('dashboard');
+  };
+
+  const handleBack = () => {
+    setCurrentState('dashboard');
+  };
+
+  switch (currentState) {
+    case 'login':
+      return <LoginPage onLogin={handleLogin} />;
+    
+    case 'voice':
+      return (
+        <VoiceInput 
+          userLanguage={userInfo.language}
+          onBack={handleBack}
+          onExpenseAdded={handleExpenseAdded}
+        />
+      );
+    
+    case 'chat':
+      return (
+        <ChatBot 
+          userLanguage={userInfo.language}
+          userIncome={userInfo.income}
+          onBack={handleBack}
+        />
+      );
+    
+    default:
+      return (
+        <Dashboard 
+          userLanguage={userInfo.language}
+          userIncome={userInfo.income}
+          onVoiceInput={handleVoiceInput}
+          onChatBot={handleChatBot}
+        />
+      );
+  }
 };
 
 export default Index;
